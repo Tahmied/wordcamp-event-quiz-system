@@ -7,7 +7,7 @@ dotenv.config('./.env')
 connectDB()
     .then((res) => {
         app.listen(process.env.PORT || 3120, () => {
-            console.log(`running on https://localhost:${process.env.PORT || 3120}`);
+            console.log(`running on http://localhost:${process.env.PORT || 3120}`);
         })
     })
     .catch((err) => {
