@@ -93,7 +93,11 @@ export const submitAnswers = asyncHandler(async (req, res) => {
     }
 
     user.quizState.score = score;
-    user.status = 'completed';
+    if (score > 1) { 
+        user.status = 'completed';
+    } else {
+        user.status = 'failed';
+    }
     await user.save({ validateBeforeSave: false });
 
     return res.status(200).json(
