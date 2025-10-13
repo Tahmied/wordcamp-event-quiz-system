@@ -57,3 +57,49 @@ export const getQuestions = asyncHandler(async (req, res) => {
         new ApiResponse(200, questionsForFrontend, "Questions fetched successfully")
     );
 });
+
+export const submitAnswers = asyncHandler(async (req, res) => {
+    const { userToken, answers } = req.body;
+
+    if (!userToken || !answers || !Array.isArray(answers) || answers.length === 0) {
+        throw new ApiError(400, 'User token and a valid answers array are required.');
+    }
+
+    const user = await User.findOne({ userToken });
+
+    if (!user) {
+        throw new ApiError(404, 'User not found.');
+    }
+
+    if (user.status === 'completed') {
+        throw new ApiError(403, 'You have already submitted your answers.');
+    }
+
+    let score = 0;
+    const questionIds = answers.map(a => a.questionId);
+
+    const correctQuestions = await Question.find({
+        '_id': { $in: questionIds }
+    }).select('+correctAnswer');
+
+    const answerMap = new Map(correctQuestions.map(q => [q._id.toString(), q.correctAnswer]));
+
+    for (const answer of answers) {
+        const correctAnswer = answerMap.get(answer.questionId);
+        if (correctAnswer && correctAnswer === answer.selectedOption) {
+            score++;
+        }
+    }
+
+    user.quizState.score = score;
+    user.status = 'completed';
+    await user.save({ validateBeforeSave: false });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { score },
+            "Quiz submitted successfully. Thank you for participating!"
+        )
+    );
+});
