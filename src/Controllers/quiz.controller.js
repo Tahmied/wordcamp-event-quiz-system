@@ -1,3 +1,4 @@
+import Prize from "../Models/prize.model.js";
 import Question from "../Models/question.model.js";
 import { User } from "../Models/user.model.js";
 import { ApiError } from "../Utils/ApiError.js";
@@ -103,3 +104,83 @@ export const submitAnswers = asyncHandler(async (req, res) => {
         )
     );
 });
+
+export const getPrize = asyncHandler(async (req, res) => {
+    const { userToken } = req.body;
+    if (!userToken) {
+        throw new ApiError(400, 'User token is required.');
+    }
+    const user = await User.findOne({ userToken }).select('userToken quizState.score status');
+    if (!user) {
+        throw new ApiError(404, 'User not found.');
+    }
+
+
+    if (user.status !== 'completed') {
+        throw new ApiError(403, 'Quiz has not been completed yet.');
+    }
+
+    let prize = null;
+    const score = user.quizState.score;
+    if (score === 2 || score === 3) {
+        const availablePrizes = await Prize.find({ scoreToWin: score });
+        if (availablePrizes.length > 0) {
+            const randomIndex = Math.floor(Math.random() * availablePrizes.length);
+            prize = availablePrizes[randomIndex];
+        }
+    }
+    if (!prize) {
+        prize = {
+            name: "Thanks for Participating!",
+            image: "/uploads/prizes/participation.png"
+        };
+    }
+
+    const resultData = {
+        token: user.userToken,
+        score: score,
+        prize: {
+            name: prize.name,
+            image: prize.image
+        }
+    };
+
+    return res.status(200).json(
+        new ApiResponse(200, resultData, "Results fetched successfully.")
+    );
+});
+
+export const setPrize = asyncHandler(async (req, res) => {
+    // 1. Get text fields from req.body
+    const { name, scoreToWin } = req.body;
+
+    // 2. Get the uploaded file info from req.file (thanks to multer)
+    const prizeImage = req.file;
+
+    if (!name || !scoreToWin) {
+        throw new ApiError(400, 'Prize name and scoreToWin are required.');
+    }
+
+    if (!prizeImage) {
+        throw new ApiError(400, 'Prize image is required.');
+    }
+
+    if (Number(scoreToWin) !== 2 && Number(scoreToWin) !== 3) {
+        throw new ApiError(400, 'Score to win must be either 2 or 3.');
+    }
+
+    // 3. Construct the public URL for the saved image
+    // req.file.path gives the full system path, e.g., 'public/uploads/prizes/image-123.png'
+    // We only want to store the public part of the URL.
+    const imagePath = `/${prizeImage.path.split('public/')[1]}`;
+
+    // 4. Create the prize in the database
+    const prize = await Prize.create({
+        name,
+        image: imagePath,
+        scoreToWin: Number(scoreToWin), // Ensure it's stored as a number
+    });
+
+    return res.status(201).json(new ApiResponse(201, prize, "Prize created successfully"));
+});
+
