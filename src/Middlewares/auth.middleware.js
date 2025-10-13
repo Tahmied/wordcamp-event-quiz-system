@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken'
-import { User } from "../models/admin.Model.js"
-import { ApiResponse } from "../utils/ApiResponse.js"
+import { Admin } from '../Models/admin.model.js'
+import { ApiResponse } from '../Utils/ApiResponse.js'
 
 export async function findUser(req,res,next) {
 try {
@@ -14,11 +14,11 @@ try {
             new ApiResponse(400 , 'can\'t decode access token')
         }
         
-        let user = await User.findById(decodedAccessToken._id)
+        let user = await Admin.findById(decodedAccessToken._id)
         if(!user){
             new ApiResponse(404 , 'user not found')
         }
-        req.user = user
+        req.admin = user
         next()
 } catch (error) {
     if(error.name === 'JsonWebTokenError' || error.name === `TokenExpiredError`){
