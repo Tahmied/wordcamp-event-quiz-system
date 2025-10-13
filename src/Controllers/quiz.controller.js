@@ -1,8 +1,8 @@
-import Question from "../Models/question.model";
-import { User } from "../Models/user.model";
-import { ApiError } from "../Utils/ApiError";
-import { ApiResponse } from "../Utils/ApiResponse";
-import { asyncHandler } from "../Utils/AsyncHandler";
+import Question from "../Models/question.model.js";
+import { User } from "../Models/user.model.js";
+import { ApiError } from "../Utils/ApiError.js";
+import { ApiResponse } from "../Utils/ApiResponse.js";
+import { asyncHandler } from "../Utils/AsyncHandler.js";
 
 export const getQuestions = asyncHandler(async (req, res) => {
     const { userToken } = req.body;
