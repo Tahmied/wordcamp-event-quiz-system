@@ -3,9 +3,360 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Backend</title>
+    <title>WordCamp Quiz Challenge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .view { display: none; }
+        .view.active { display: block; }
+        .question-card {
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .option-btn {
+            transition: all 0.2s ease;
+        }
+        .option-btn:hover {
+            transform: translateX(4px);
+        }
+        .option-btn.selected {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #2563eb;
+        }
+    </style>
 </head>
-<body>
-    <h1>Backend is running, developed by <a href="http://tahmied.com"></a> Tahmied Hossain</h1>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen py-8 px-4">
+    <div class="w-full max-w-xl mx-auto">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-700">WordCamp Quiz Challenge</h1>
+            <p class="text-slate-500 mt-2">Test your knowledge and win exciting prizes!</p>
+        </header>
+
+        <main id="app-container" class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg relative">
+            <!-- Registration View -->
+            <div id="registration-view" class="view active">
+                <h2 class="text-2xl font-semibold mb-6 text-center">Join the Challenge</h2>
+                <form id="registration-form" class="space-y-4">
+                    <input type="text" id="name" name="name" placeholder="Full Name" required 
+                        class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="email" id="email" name="email" placeholder="Email Address" required 
+                        class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="tel" id="phone" name="phone" placeholder="Phone Number" required 
+                        class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="text" id="profession" name="profession" placeholder="Your Profession" 
+                        class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="text" id="company" name="company" placeholder="Company Name" 
+                        class="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button type="submit" 
+                        class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300">
+                        Start Quiz
+                    </button>
+                </form>
+            </div>
+
+            <!-- Quiz View -->
+            <div id="quiz-view" class="view">
+                <div id="quiz-content" class="space-y-6">
+                    <!-- Questions will be dynamically inserted here -->
+                </div>
+                <button id="submit-answers-btn" 
+                    class="w-full mt-8 bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition duration-300 disabled:bg-slate-400 disabled:cursor-not-allowed" 
+                    disabled>
+                    Submit Answers
+                </button>
+            </div>
+
+            <!-- Result View -->
+            <div id="result-view" class="view text-center">
+                <h2 class="text-2xl font-bold text-green-600 mb-4">🎉 Quiz Completed!</h2>
+                <p class="text-lg">Your Score: <span id="final-score" class="font-bold text-2xl text-blue-600"></span></p>
+                <div class="my-6">
+                    <h3 class="text-xl font-semibold mb-2">Your Prize!</h3>
+                    <p id="prize-name" class="text-slate-600 font-medium text-lg"></p>
+                    <img id="prize-image" src="" alt="Prize Image" class="mx-auto mt-4 max-h-60 rounded-lg shadow-md">
+                </div>
+                <div class="bg-slate-100 p-4 rounded-lg">
+                    <p class="text-sm text-slate-600">Show this token to collect your prize:</p>
+                    <p id="user-token-display" class="font-mono text-lg font-semibold bg-white p-2 mt-2 rounded-md break-all"></p>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="loader" class="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center rounded-2xl hidden">
+                <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+            </div>
+
+            <!-- Error Display -->
+            <div id="error-box" class="hidden mt-4 text-center bg-red-100 text-red-700 p-3 rounded-lg"></div>
+        </main>
+    </div>
+
+    <script>
+        // State management
+        let userToken = null;
+        let questions = [];
+        let userAnswers = {};
+
+        // DOM Elements
+        const registrationView = document.getElementById('registration-view');
+        const quizView = document.getElementById('quiz-view');
+        const resultView = document.getElementById('result-view');
+        const loader = document.getElementById('loader');
+        const errorBox = document.getElementById('error-box');
+        const registrationForm = document.getElementById('registration-form');
+        const quizContent = document.getElementById('quiz-content');
+        const submitAnswersBtn = document.getElementById('submit-answers-btn');
+
+        // Utility Functions
+        function showLoader() {
+            loader.classList.remove('hidden');
+        }
+
+        function hideLoader() {
+            loader.classList.add('hidden');
+        }
+
+        function showError(message) {
+            errorBox.textContent = message;
+            errorBox.classList.remove('hidden');
+            setTimeout(() => errorBox.classList.add('hidden'), 5000);
+        }
+
+        function switchView(viewToShow) {
+            [registrationView, quizView, resultView].forEach(view => {
+                view.classList.remove('active');
+            });
+            viewToShow.classList.add('active');
+        }
+
+        // API Functions
+        async function registerUser(formData) {
+            showLoader();
+            try {
+                const response = await fetch('/api/v1/users/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.message || 'Registration failed');
+                }
+
+                userToken = result.data.userToken;
+                return result;
+            } catch (error) {
+                showError(error.message);
+                throw error;
+            } finally {
+                hideLoader();
+            }
+        }
+
+        async function fetchQuestions() {
+            showLoader();
+            try {
+                const response = await fetch('/api/v1/questions/getQuestions');
+
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.message || 'Failed to fetch questions');
+                }
+
+                questions = result.data;
+                return result;
+            } catch (error) {
+                showError(error.message);
+                throw error;
+            } finally {
+                hideLoader();
+            }
+        }
+
+        async function submitAnswers() {
+            showLoader();
+            try {
+                const answersArray = Object.entries(userAnswers).map(([questionId, selectedOption]) => ({
+                    questionId,
+                    selectedOption
+                }));
+
+                const response = await fetch('/api/v1/questions/submitAnswers', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userToken,
+                        answers: answersArray
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.message || 'Failed to submit answers');
+                }
+
+                return result;
+            } catch (error) {
+                showError(error.message);
+                throw error;
+            } finally {
+                hideLoader();
+            }
+        }
+
+        async function fetchPrize() {
+            showLoader();
+            try {
+                const response = await fetch('/api/v1/questions/getPrize', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userToken })
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.message || 'Failed to fetch prize');
+                }
+
+                return result;
+            } catch (error) {
+                showError(error.message);
+                throw error;
+            } finally {
+                hideLoader();
+            }
+        }
+
+        // UI Functions
+        function renderQuestions() {
+            quizContent.innerHTML = '';
+            
+            questions.forEach((question, index) => {
+                const questionCard = document.createElement('div');
+                questionCard.className = 'question-card bg-slate-50 p-5 rounded-lg border border-slate-200';
+                
+                const questionHTML = `
+                    <h3 class="font-semibold text-lg mb-4 text-slate-700">
+                        Question ${index + 1}: ${question.text}
+                    </h3>
+                    <div class="space-y-2">
+                        ${question.options.map(option => `
+                            <button 
+                                type="button"
+                                class="option-btn w-full text-left px-4 py-3 border-2 border-slate-300 rounded-lg hover:border-blue-400 focus:outline-none"
+                                data-question-id="${question._id}"
+                                data-option="${option}">
+                                ${option}
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+                
+                questionCard.innerHTML = questionHTML;
+                quizContent.appendChild(questionCard);
+            });
+
+            // Add event listeners to option buttons
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                btn.addEventListener('click', handleOptionSelect);
+            });
+        }
+
+        function handleOptionSelect(e) {
+            const btn = e.currentTarget;
+            const questionId = btn.dataset.questionId;
+            const selectedOption = btn.dataset.option;
+
+            // Remove selection from other options in the same question
+            document.querySelectorAll(`[data-question-id="${questionId}"]`).forEach(otherBtn => {
+                otherBtn.classList.remove('selected');
+            });
+
+            // Mark this option as selected
+            btn.classList.add('selected');
+
+            // Store the answer
+            userAnswers[questionId] = selectedOption;
+
+            // Enable submit button if all questions are answered
+            if (Object.keys(userAnswers).length === questions.length) {
+                submitAnswersBtn.disabled = false;
+            }
+        }
+
+        function displayResults(prizeData) {
+            document.getElementById('final-score').textContent = `${prizeData.score}/3`;
+            document.getElementById('prize-name').textContent = prizeData.prize.name;
+            document.getElementById('prize-image').src = prizeData.prize.image;
+            document.getElementById('user-token-display').textContent = prizeData.token;
+            
+            switchView(resultView);
+        }
+
+        // Event Handlers
+        registrationForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('name').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                profession: document.getElementById('profession').value.trim(),
+                company: document.getElementById('company').value.trim()
+            };
+
+            try {
+                await registerUser(formData);
+                await fetchQuestions();
+                renderQuestions();
+                switchView(quizView);
+            } catch (error) {
+                console.error('Registration or question fetch failed:', error);
+            }
+        });
+
+        submitAnswersBtn.addEventListener('click', async () => {
+            if (Object.keys(userAnswers).length !== questions.length) {
+                showError('Please answer all questions before submitting');
+                return;
+            }
+
+            try {
+                await submitAnswers();
+                const prizeResult = await fetchPrize();
+                displayResults(prizeResult.data);
+            } catch (error) {
+                console.error('Submit or prize fetch failed:', error);
+            }
+        });
+
+        // Handle page visibility change (tab switching)
+        document.addEventListener('visibilitychange', async () => {
+            if (!document.hidden && userToken && quizView.classList.contains('active')) {
+                try {
+                    await fetchQuestions();
+                    userAnswers = {};
+                    renderQuestions();
+                    submitAnswersBtn.disabled = true;
+                } catch (error) {
+                    console.error('Failed to refresh questions:', error);
+                }
+            }
+        });
+    </script>
 </body>
 </html>

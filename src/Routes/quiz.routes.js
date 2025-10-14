@@ -3,7 +3,7 @@ import { getPrize, getQuestions, submitAnswers } from "../Controllers/quiz.contr
 
 const router = Router()
 
-router.get('/getQuestions', getQuestions)
+router.post('/getQuestions', getQuestions)
 router.post('/submitAnswers', submitAnswers)
 router.get('/getPrize', getPrize)
 
