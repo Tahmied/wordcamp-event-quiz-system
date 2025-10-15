@@ -36,6 +36,8 @@ const userSchema = new mongoose.Schema({
     score: Number,
     attemptCount: { type: Number, default: 0 },
     servedQuestions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Question' }],
+    retakeUsed: { type: Boolean, default: false },
+    retaking: { type: Boolean, default: false }
   },
   ipAddress: {
     type: String,
@@ -43,7 +45,7 @@ const userSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
-  },
+  }
 });
 
 export const User = mongoose.model('User', userSchema);
