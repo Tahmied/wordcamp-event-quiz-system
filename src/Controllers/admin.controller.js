@@ -172,7 +172,8 @@ export const getUsers = asyncHandler(async (req, res) => {
         .select('-ipAddress')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit);
+        .limit(limit)
+        .populate('assignedPrize')
 
     const totalUsers = await User.countDocuments(query);
     const totalPages = Math.ceil(totalUsers / limit);
@@ -191,7 +192,7 @@ export const changeUserStatus = asyncHandler(async (req, res) => {
     const { userId } = req.params;
     const { status } = req.body;
 
-    if (!status || !['pending', 'completed', 'failed'].includes(status)) {
+    if (!status || !['pending', 'completed', 'failed', 'rewarded'].includes(status)) {
         throw new ApiError(400, "Invalid status provided. Must be 'pending', 'completed', or 'failed'.");
     }
 

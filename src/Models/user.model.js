@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'completed', 'failed'],
+    enum: ['pending', 'completed', 'failed', 'rewarded'],
     default: 'pending',
   },
   quizState: {
@@ -49,6 +49,10 @@ const userSchema = new mongoose.Schema({
   assignedPrize: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Prize'
+  }, 
+  rewardTaken: {
+    type: Boolean,
+    default: false
   }
 });
 
