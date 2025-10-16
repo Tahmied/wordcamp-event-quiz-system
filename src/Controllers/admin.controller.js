@@ -73,11 +73,16 @@ export const loginadmin = asyncHandler(async (req, res) => {
         sameSite: 'strict'
     }
 
+    const tokensToReturn = {
+        accessToken : accessToken,
+        refreshToken : refreshToken
+    }
+
     return res.status(200)
         .cookie('AccessToken', accessToken, cookieOptions)
         .cookie('RefreshToken', refreshToken, cookieOptions)
         .json(
-            new ApiResponse(200, [], 'admin logged in')
+            new ApiResponse(200, [tokensToReturn], 'admin logged in')
         )
 
 })
