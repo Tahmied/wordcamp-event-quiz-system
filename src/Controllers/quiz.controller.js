@@ -120,12 +120,12 @@ export const getPrize = asyncHandler(async (req, res) => {
     if (!userToken) {
         throw new ApiError(400, 'User token is required.');
     }
+
     const user = await User.findOne({ userToken }).populate('assignedPrize');
 
     if (!user) {
         throw new ApiError(404, 'User not found.');
     }
-
     if (user.status === 'pending') {
         throw new ApiError(403, 'The quiz must be completed to see the results.');
     }
@@ -134,7 +134,7 @@ export const getPrize = asyncHandler(async (req, res) => {
         const resultData = {
             token: user.userToken,
             score: user.quizState.score,
-            prize: user.assignedPrize 
+            prize: user.assignedPrize
         };
         return res.status(200).json(
             new ApiResponse(200, resultData, "Previously assigned prize fetched successfully.")
@@ -145,21 +145,23 @@ export const getPrize = asyncHandler(async (req, res) => {
     const score = user.quizState.score;
 
     if (score === 2 || score === 3) {
-        const availablePrizes = await Prize.find({ scoreToWin: score });
-        if (availablePrizes.length > 0) {
-            const randomIndex = Math.floor(Math.random() * availablePrizes.length);
-            prizeToAssign = availablePrizes[randomIndex];
-        }
+        prizeToAssign = await Prize.findOneAndUpdate(
+            { scoreToWin: score, stock: { $gt: 0 } },
+            { $inc: { stock: -1 } }, 
+            { new: true } 
+        );
     }
 
-    if (prizeToAssign) {
-        user.assignedPrize = prizeToAssign._id; 
-        await user.save({ validateBeforeSave: false });
-    } else {
+    if (!prizeToAssign) {
         prizeToAssign = {
             name: "Thanks for Participating!",
             image: "/uploads/prizes/participation.png"
         };
+    }
+
+    if (prizeToAssign._id) {
+        user.assignedPrize = prizeToAssign._id;
+        await user.save({ validateBeforeSave: false });
     }
 
     const resultData = {
@@ -177,13 +179,11 @@ export const getPrize = asyncHandler(async (req, res) => {
 });
 
 export const setPrize = asyncHandler(async (req, res) => {
-    // 1. Get text fields from req.body
-    const { name, scoreToWin } = req.body;
+    const { name, scoreToWin, stock } = req.body;
 
-    // 2. Get the uploaded file info from req.file (thanks to multer)
     const prizeImage = req.file;
 
-    if (!name || !scoreToWin) {
+    if (!name || !scoreToWin || !stock) {
         throw new ApiError(400, 'Prize name and scoreToWin are required.');
     }
 
@@ -194,17 +194,13 @@ export const setPrize = asyncHandler(async (req, res) => {
     if (Number(scoreToWin) !== 2 && Number(scoreToWin) !== 3) {
         throw new ApiError(400, 'Score to win must be either 2 or 3.');
     }
-
-    // 3. Construct the public URL for the saved image
-    // req.file.path gives the full system path, e.g., 'public/uploads/prizes/image-123.png'
-    // We only want to store the public part of the URL.
     const imagePath = `/${prizeImage.path.split('public/')[1]}`;
 
-    // 4. Create the prize in the database
     const prize = await Prize.create({
         name,
         image: imagePath,
-        scoreToWin: Number(scoreToWin), // Ensure it's stored as a number
+        scoreToWin: Number(scoreToWin),
+        stock: Number(stock)
     });
 
     return res.status(201).json(new ApiResponse(201, prize, "Prize created successfully"));

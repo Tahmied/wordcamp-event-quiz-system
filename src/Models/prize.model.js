@@ -14,6 +14,11 @@ const prizeSchema = new mongoose.Schema({
         required: true,
         index: true,
     },
+    stock: {
+        type: Number,
+        required: true,
+        default: 0
+    },
 });
 
 const Prize = mongoose.model('Prize', prizeSchema);
