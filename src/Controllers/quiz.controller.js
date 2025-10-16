@@ -101,7 +101,7 @@ export const submitAnswers = asyncHandler(async (req, res) => {
 
     if (user.quizState.retaking) {
         user.quizState.retakeUsed = true;
-        user.quizState.retaking = false; 
+        user.quizState.retaking = false;
     }
 
     await user.save({ validateBeforeSave: false });
@@ -120,7 +120,8 @@ export const getPrize = asyncHandler(async (req, res) => {
     if (!userToken) {
         throw new ApiError(400, 'User token is required.');
     }
-    const user = await User.findOne({ userToken }).select('userToken quizState.score status');
+    const user = await User.findOne({ userToken }).populate('assignedPrize');
+
     if (!user) {
         throw new ApiError(404, 'User not found.');
     }
@@ -129,17 +130,33 @@ export const getPrize = asyncHandler(async (req, res) => {
         throw new ApiError(403, 'The quiz must be completed to see the results.');
     }
 
-    let prize = null;
+    if (user.assignedPrize) {
+        const resultData = {
+            token: user.userToken,
+            score: user.quizState.score,
+            prize: user.assignedPrize 
+        };
+        return res.status(200).json(
+            new ApiResponse(200, resultData, "Previously assigned prize fetched successfully.")
+        );
+    }
+
+    let prizeToAssign = null;
     const score = user.quizState.score;
+
     if (score === 2 || score === 3) {
         const availablePrizes = await Prize.find({ scoreToWin: score });
         if (availablePrizes.length > 0) {
             const randomIndex = Math.floor(Math.random() * availablePrizes.length);
-            prize = availablePrizes[randomIndex];
+            prizeToAssign = availablePrizes[randomIndex];
         }
     }
-    if (!prize) {
-        prize = {
+
+    if (prizeToAssign) {
+        user.assignedPrize = prizeToAssign._id; 
+        await user.save({ validateBeforeSave: false });
+    } else {
+        prizeToAssign = {
             name: "Thanks for Participating!",
             image: "/uploads/prizes/participation.png"
         };
@@ -149,13 +166,13 @@ export const getPrize = asyncHandler(async (req, res) => {
         token: user.userToken,
         score: score,
         prize: {
-            name: prize.name,
-            image: prize.image
+            name: prizeToAssign.name,
+            image: prizeToAssign.image
         }
     };
 
     return res.status(200).json(
-        new ApiResponse(200, resultData, "Results fetched successfully.")
+        new ApiResponse(200, resultData, "Prize assigned and fetched successfully.")
     );
 });
 

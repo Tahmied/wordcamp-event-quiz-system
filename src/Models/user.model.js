@@ -45,6 +45,10 @@ const userSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
+  },
+  assignedPrize: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Prize'
   }
 });
 
