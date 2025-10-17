@@ -144,11 +144,11 @@ export const getPrize = asyncHandler(async (req, res) => {
     let prizeToAssign = null;
     const score = user.quizState.score;
 
-    if (score === 2 || score === 3) {
+    if (score === 1 || score === 2 || score === 3) {
         prizeToAssign = await Prize.findOneAndUpdate(
             { scoreToWin: score, stock: { $gt: 0 } },
-            { $inc: { stock: -1 } }, 
-            { new: true } 
+            { $inc: { stock: -1 } },
+            { new: true }
         );
     }
 
@@ -191,9 +191,6 @@ export const setPrize = asyncHandler(async (req, res) => {
         throw new ApiError(400, 'Prize image is required.');
     }
 
-    if (Number(scoreToWin) !== 2 && Number(scoreToWin) !== 3) {
-        throw new ApiError(400, 'Score to win must be either 2 or 3.');
-    }
     const imagePath = `/${prizeImage.path.split('public/')[1]}`;
 
     const prize = await Prize.create({
@@ -219,8 +216,8 @@ export const retakeQuiz = asyncHandler(async (req, res) => {
     if (user.status !== 'failed') {
         throw new ApiError(403, 'You can only retake the quiz if you have failed.');
     }
-    if (user.quizState.score !== 1) {
-        throw new ApiError(403, 'A retake is only available for a score of 1.');
+    if (user.quizState.score > 1) {
+        throw new ApiError(403, 'A retake is only available for scores of 0 or 1.');
     }
     if (user.quizState.retakeUsed) {
         throw new ApiError(403, 'You have already used your one retake attempt.');
