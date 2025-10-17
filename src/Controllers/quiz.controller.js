@@ -1,3 +1,4 @@
+
 import Prize from "../Models/prize.model.js";
 import Question from "../Models/question.model.js";
 import { User } from "../Models/user.model.js";
@@ -102,6 +103,7 @@ export const submitAnswers = asyncHandler(async (req, res) => {
     if (user.quizState.retaking) {
         user.quizState.retakeUsed = true;
         user.quizState.retaking = false;
+        user.assignedPrize = null;
     }
 
     await user.save({ validateBeforeSave: false });
@@ -144,7 +146,7 @@ export const getPrize = asyncHandler(async (req, res) => {
     let prizeToAssign = null;
     const score = user.quizState.score;
 
-    if (score === 1 || score === 2 || score === 3) {
+    if (score > 0) {
         prizeToAssign = await Prize.findOneAndUpdate(
             { scoreToWin: score, stock: { $gt: 0 } },
             { $inc: { stock: -1 } },
@@ -153,12 +155,20 @@ export const getPrize = asyncHandler(async (req, res) => {
     }
 
     if (!prizeToAssign) {
-        prizeToAssign = {
-            name: "Thanks for Participating!",
-            image: "/uploads/prizes/participation.png"
-        };
+        prizeToAssign = await Prize.findOneAndUpdate(
+            { scoreToWin: 0, stock: { $gt: 0 } }, 
+            { $inc: { stock: -1 } }, 
+            { new: true }
+        );
     }
 
+    if (!prizeToAssign) {
+        prizeToAssign = {
+            name: "All Prizes Have Been Claimed!",
+            image: "/uploads/prizes/out-of-stock.png"
+        };
+    }
+    
     if (prizeToAssign._id) {
         user.assignedPrize = prizeToAssign._id;
         await user.save({ validateBeforeSave: false });
