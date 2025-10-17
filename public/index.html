@@ -154,6 +154,50 @@
       animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
+    select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234a5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 16px;
+    padding-right: 48px;
+}
+
+select:focus {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300e599' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+}
+
+.save-reminder {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border: 2px solid #fbbf24;
+    border-radius: 16px;
+    padding: 24px;
+    margin: 28px 0;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.15);
+}
+
+.save-reminder svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.save-reminder strong {
+    display: block;
+    color: #92400e;
+    font-size: 16px;
+    margin-bottom: 8px;
+}
+
+.save-reminder p {
+    color: #78350f;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0;
+}
+
     @keyframes fadeInUp {
       from {
         opacity: 0;
@@ -580,13 +624,31 @@
             <label for="phone">Phone *</label>
             <input type="tel" id="phone" required placeholder="01XXXXXXXXX">
           </div>
+
           <div class="form-group">
-            <label for="profession">Profession *</label>
-            <input type="text" id="profession" required placeholder="e.g., Software Engineer">
+              <label for="profession">Profession *</label>
+              <select id="profession" required>
+                  <option value="" disabled selected>Select your profession</option>
+                  <option value="Web Developer">Web Developer</option>
+                  <option value="Software Developer">Software Developer</option>
+                  <option value="Frontend Developer">Frontend Developer</option>
+                  <option value="Backend Developer">Backend Developer</option>
+                  <option value="Full Stack Developer">Full Stack Developer</option>
+                  <option value="DevOps Engineer">DevOps Engineer</option>
+                  <option value="UI/UX Designer">UI/UX Designer</option>
+                  <option value="System Administrator">System Administrator</option>
+                  <option value="IT Support">IT Support</option>
+                  <option value="Project Manager">Project Manager</option>
+                  <option value="Digital Marketer">Digital Marketer</option>
+                  <option value="Content Creator">Content Creator</option>
+                  <option value="Student">Student</option>
+                  <option value="Other">Other</option>
+              </select>
           </div>
+          
           <div class="form-group">
             <label for="company">Company *</label>
-            <input type="text" id="company" required placeholder="Your company name">
+            <input type="text" id="company" placeholder="Your company name">
           </div>
         </form>
 
@@ -683,7 +745,7 @@
       const profession = document.getElementById('profession').value.trim();
       const company = document.getElementById('company').value.trim();
 
-      if (!name || !email || !phone || !profession || !company) {
+      if (!name || !email || !phone || !profession) {
         showError('Please fill in all required fields');
         return;
       }
@@ -904,10 +966,14 @@
                                                           <div class="token-label">Your Prize Token</div>
                                                           <div class="token-code">${data.data.token}</div>
                                                       </div>
+                                                      
+                                          <div class="save-reminder">
 
-                                                      <p style="color: #666; line-height: 1.6; margin-top: 16px;">
-                                                          <strong>Important:</strong> Show this token to our event managers to claim your prize. Screenshot this page for your records!
-                                                      </p>
+            <div>
+                <strong>Important: Save Your Entry Code!</strong>
+                <p>Please save this code or take a screenshot. You'll need to present this code at the WordCamp Dhaka 2025 event to claim your prize if you win.</p>
+            </div>
+        </div>
                                                   `;
         }
       } catch (error) {
